@@ -41,7 +41,7 @@ dev = [
 ]
 
 [project.scripts]
-satisfactory-ai = "cli:cli"
+satisfactory-ai = "satisfactory_ai.cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/btotharye/satisfactory-ai"
@@ -59,4 +59,4 @@ select = ["E", "F", "W", "I"]
 ignore = ["E501"]  # line too long (handled by black)
 
 [tool.ruff.isort]
-known-first-party = ["parse_save", "analyze_factory"]
+known-first-party = ["satisfactory_ai"]

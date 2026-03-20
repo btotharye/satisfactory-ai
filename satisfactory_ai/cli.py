@@ -15,8 +15,8 @@ from typing import Optional
 
 import click
 
-from parse_save import parse_save_file
-from analyze_factory import analyze_save_file
+from .parse_save import parse_save_file
+from .analyze_factory import analyze_save_file
 
 
 @click.group()
