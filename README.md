@@ -13,6 +13,17 @@ AI-powered factory analyzer for Satisfactory. Upload your save file and get inte
 
 ## Installation
 
+### With uv (Recommended)
+
+```bash
+git clone --recurse-submodules https://github.com/btotharye/satisfactory-ai.git
+cd satisfactory-ai
+uv sync
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+```
+
+### With pip
+
 ```bash
 git clone https://github.com/btotharye/satisfactory-ai.git
 cd satisfactory-ai
@@ -82,6 +93,7 @@ ANTHROPIC_API_KEY=your-key-here
 ## Requirements
 
 - Python 3.8+
+- [uv](https://docs.astral.sh/uv/) or pip
 - Claude API key (free tier available at [console.anthropic.com](https://console.anthropic.com))
 - A Satisfactory save file (`.sav`)
 
