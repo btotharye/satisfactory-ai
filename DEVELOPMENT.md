@@ -31,13 +31,26 @@ cd satisfactory-ai
 # Install dependencies with uv
 uv sync
 
-# Activate virtual environment
+# Activate virtual environment (optional)
 source .venv/bin/activate  # Linux/macOS
 # or on Windows:
 .venv\Scripts\activate
 
-# Or run commands directly with uv
-uv run python cli.py --help
+# Run commands directly with uv (no venv activation needed)
+uv run satisfactory-ai --help
+uv run satisfactory-ai analyze <save-file>
+```
+
+### First Run
+
+```bash
+# Check configuration
+uv run satisfactory-ai config
+
+# This will verify:
+# ✅ ANTHROPIC_API_KEY is set
+# ✅ Claude API is accessible
+# ✅ sat_sav_parse module is available
 ```
 
 ## Development Workflow
