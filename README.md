@@ -132,7 +132,7 @@ Get a free API key at [console.anthropic.com](https://console.anthropic.com).
 
 ### Optional: Claude Model
 
-By default, uses `claude-3-5-sonnet-20241022` (best quality/cost ratio).
+By default, uses `claude-sonnet-4-6` (best quality/cost ratio).
 
 To use a different model:
 
@@ -143,9 +143,9 @@ export CLAUDE_MODEL=claude-3-haiku-20240307
 ```
 
 Available models:
-- `claude-3-5-sonnet-20241022` (recommended, best value)
-- `claude-3-opus-20240229` (more powerful, higher cost)
-- `claude-3-haiku-20240307` (faster, cheaper)
+- `claude-sonnet-4-6` (recommended, best value)
+- `claude-opus-4-6` (more powerful, higher cost)
+- `claude-haiku-4-5-20251001` (faster, cheaper)
 
 ## Requirements
 

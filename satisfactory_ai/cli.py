@@ -146,7 +146,7 @@ def config():
             client = Anthropic(api_key=api_key)
             # Simple test call
             response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model=os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6"),
                 max_tokens=10,
                 messages=[{"role": "user", "content": "Hi"}]
             )

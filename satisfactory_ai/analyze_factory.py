@@ -41,9 +41,9 @@ class FactoryAnalyzer:
         """
         prompt = self._build_analysis_prompt(factory_data)
         
-        # Use Claude 3.5 Sonnet by default (best quality/cost ratio)
+        # Use Claude 4.6 Sonnet by default (best quality/cost ratio)
         # Or set CLAUDE_MODEL env var for alternatives
-        model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
+        model = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
         
         response = self.client.messages.create(
             model=model,
