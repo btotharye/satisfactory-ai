@@ -16,10 +16,25 @@ AI-powered factory analyzer for Satisfactory. Upload your save file and get inte
 ### With uv (Recommended)
 
 ```bash
+# Clone with submodules included
 git clone --recurse-submodules https://github.com/btotharye/satisfactory-ai.git
 cd satisfactory-ai
+
+# Install dependencies
 uv sync
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+
+# Set API key
+export ANTHROPIC_API_KEY=your-key-here
+
+# Run
+uv run satisfactory-ai analyze <save-file>
+```
+
+**If you already cloned without `--recurse-submodules`:**
+```bash
+cd satisfactory-ai
+git submodule update --init --recursive
+uv sync
 ```
 
 ### With pip

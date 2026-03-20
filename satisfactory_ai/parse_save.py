@@ -53,8 +53,11 @@ def parse_save_file(save_path: str) -> Optional[Dict[str, Any]]:
         return extractor.extract_all()
     
     except ImportError as e:
-        print(f"Error: Could not import sat_sav_parse. Make sure submodule is initialized:", file=sys.stderr)
+        print(f"Error: Could not import sat_sav_parse.", file=sys.stderr)
+        print(f"\nTo fix, run:", file=sys.stderr)
         print(f"  git submodule update --init --recursive", file=sys.stderr)
+        print(f"\nOr if cloning fresh:", file=sys.stderr)
+        print(f"  git clone --recurse-submodules https://github.com/btotharye/satisfactory-ai.git", file=sys.stderr)
         return None
     except Exception as e:
         print(f"Error parsing save file: {e}", file=sys.stderr)
