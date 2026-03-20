@@ -148,6 +148,16 @@ satisfactory-ai/
 └── sat_sav_parse/         # Submodule: Parser library
 ```
 
+## Supported Versions
+
+**Satisfactory 1.1.0 and later** (1.1.x, 1.2.x)
+
+**Not supported:**
+- Satisfactory 1.0.x and earlier
+- Experimental builds may need newer parser
+
+If you get "Unsupported save header version" error, your save is too old. Consider updating to a newer Satisfactory version or using a more recent save file.
+
 ## Save File Location
 
 ### Windows

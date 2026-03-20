@@ -60,6 +60,16 @@ def parse_save_file(save_path: str) -> Optional[Dict[str, Any]]:
         print(f"  git clone --recurse-submodules https://github.com/btotharye/satisfactory-ai.git", file=sys.stderr)
         return None
     except Exception as e:
+        error_msg = str(e)
+        
+        # Check for version errors
+        if "Unsupported save header version" in error_msg:
+            print(f"Error: Your save file is from an unsupported Satisfactory version.", file=sys.stderr)
+            print(f"Details: {error_msg}", file=sys.stderr)
+            print(f"\nSupported versions: Satisfactory 1.1.0 and later (1.1.x, 1.2.x)", file=sys.stderr)
+            print(f"Your save appears to be from an older version.", file=sys.stderr)
+            return None
+        
         print(f"Error parsing save file: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc(file=sys.stderr)

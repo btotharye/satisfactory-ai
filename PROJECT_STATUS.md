@@ -93,9 +93,9 @@ uv run satisfactory-ai config
 
 ## Known Limitations
 
-1. **Data Extraction** — Currently extracts basic factory stats. Could be more granular (belt speeds, production ratios, etc.)
-2. **Analysis Depth** — Uses general Claude model; could fine-tune for Satisfactory domain
-3. **Save Compatibility** — Tested on 1.2.0.0; older versions may need investigation
+1. **Save Version Support** — Only 1.1.0+ (1.1.x, 1.2.x). Satisfactory 1.0 saves are not supported.
+2. **Data Extraction** — Currently extracts basic factory stats. Could be more granular (belt speeds, production ratios, etc.)
+3. **Analysis Depth** — Uses general Claude model; could fine-tune for Satisfactory domain
 4. **Performance** — No caching; every analysis hits Claude API
 
 ---
