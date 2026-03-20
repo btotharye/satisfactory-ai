@@ -29,13 +29,14 @@ def cli():
 @click.argument('save_file', type=click.Path(exists=True))
 @click.option('--interactive', '-i', is_flag=True, help='Interactive analysis with follow-up questions')
 @click.option('--json', 'output_json', is_flag=True, help='Output raw JSON')
-def analyze(save_file: str, interactive: bool, output_json: bool):
+@click.option('--debug', is_flag=True, help='Show debug information')
+def analyze(save_file: str, interactive: bool, output_json: bool, debug: bool):
     """Analyze a Satisfactory save file and get AI optimization recommendations."""
     
     click.echo(f"📂 Loading save file: {save_file}", err=True)
     
     # Parse the save file
-    factory_data = parse_save_file(save_file)
+    factory_data = parse_save_file(save_file, debug=debug)
     if not factory_data:
         click.echo("❌ Failed to parse save file", err=True)
         sys.exit(1)

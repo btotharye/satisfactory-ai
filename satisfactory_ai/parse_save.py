@@ -13,12 +13,13 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 
-def parse_save_file(save_path: str) -> Optional[Dict[str, Any]]:
+def parse_save_file(save_path: str, debug: bool = False) -> Optional[Dict[str, Any]]:
     """
     Parse a Satisfactory save file and extract factory data.
     
     Args:
         save_path: Path to .sav file
+        debug: If True, print detailed debug info
         
     Returns:
         Dictionary with factory data, or None if parsing fails
@@ -42,8 +43,16 @@ def parse_save_file(save_path: str) -> Optional[Dict[str, Any]]:
         if not json_data:
             return None
         
+        if debug:
+            print(f"\n=== DEBUG: JSON Structure ===", file=sys.stderr)
+            print(f"Top-level keys: {list(json_data.keys())}", file=sys.stderr)
+            if 'objects' in json_data:
+                print(f"Objects count: {len(json_data['objects'])}", file=sys.stderr)
+                if json_data['objects']:
+                    print(f"First object keys: {list(json_data['objects'][0].keys())}", file=sys.stderr)
+        
         # Extract factory data from JSON
-        extractor = FactoryDataExtractor(json_data)
+        extractor = FactoryDataExtractor(json_data, debug=debug)
         return extractor.extract_all()
     
     except Exception as e:
@@ -122,14 +131,16 @@ def _convert_save_to_json(save_path: str) -> Optional[Dict[str, Any]]:
 class FactoryDataExtractor:
     """Extract relevant factory data from Satisfactory save JSON."""
     
-    def __init__(self, json_data: Dict[str, Any]):
+    def __init__(self, json_data: Dict[str, Any], debug: bool = False):
         """
         Initialize with parsed save JSON data.
         
         Args:
             json_data: JSON structure from sav_cli.py --to-json
+            debug: If True, print debug info
         """
         self.data = json_data
+        self.debug = debug
     
     def extract_all(self) -> Dict[str, Any]:
         """Extract all factory data from JSON."""
@@ -144,7 +155,6 @@ class FactoryDataExtractor:
     
     def _extract_session_info(self) -> Dict[str, Any]:
         """Extract session metadata."""
-        # Top-level save metadata
         return {
             "name": self.data.get('sessionName', 'Unknown'),
             "playTime": self.data.get('playTime', 0),
@@ -158,23 +168,48 @@ class FactoryDataExtractor:
         buildings = []
         
         try:
-            # Building data is in 'objects' list
-            objects = self.data.get('objects', [])
+            # Try multiple possible locations for building data
+            objects = None
+            
+            # Try 'objects' first
+            if 'objects' in self.data and isinstance(self.data['objects'], list):
+                objects = self.data['objects']
+            # Try 'Actors' 
+            elif 'Actors' in self.data and isinstance(self.data['Actors'], list):
+                objects = self.data['Actors']
+            # Try 'entities'
+            elif 'entities' in self.data and isinstance(self.data['entities'], list):
+                objects = self.data['entities']
+            
+            if not objects:
+                if self.debug:
+                    print(f"Warning: No objects/Actors/entities found in save data", file=sys.stderr)
+                return buildings
+            
+            if self.debug:
+                print(f"Found {len(objects)} objects to check", file=sys.stderr)
             
             for obj in objects:
                 if self._is_factory_building(obj):
                     building_data = {
                         "type": obj.get('className', 'Unknown'),
                         "location": [
-                            obj.get('location', {}).get('x', 0),
-                            obj.get('location', {}).get('y', 0),
-                            obj.get('location', {}).get('z', 0)
+                            obj.get('location', {}).get('x', 0) if isinstance(obj.get('location'), dict) else 0,
+                            obj.get('location', {}).get('y', 0) if isinstance(obj.get('location'), dict) else 0,
+                            obj.get('location', {}).get('z', 0) if isinstance(obj.get('location'), dict) else 0
                         ],
                         "name": obj.get('pathName', ''),
                     }
                     buildings.append(building_data)
+            
+            if self.debug:
+                print(f"Extracted {len(buildings)} factory buildings", file=sys.stderr)
+        
         except Exception as e:
             print(f"Warning: Could not extract buildings: {e}", file=sys.stderr)
+            if self.debug:
+                import traceback
+                traceback.print_exc(file=sys.stderr)
         
         return buildings
     
@@ -189,7 +224,10 @@ class FactoryDataExtractor:
         }
         
         try:
-            objects = self.data.get('objects', [])
+            # Find objects list
+            objects = self._find_objects_list()
+            if not objects:
+                return power_data
             
             for obj in objects:
                 obj_type = obj.get('className', '')
@@ -217,6 +255,8 @@ class FactoryDataExtractor:
                 resources = self.data['minedResources']
             elif 'resources' in self.data:
                 resources = self.data['resources']
+            elif 'resourceCounts' in self.data:
+                resources = self.data['resourceCounts']
         
         except Exception as e:
             print(f"Warning: Could not extract resources: {e}", file=sys.stderr)
@@ -247,9 +287,22 @@ class FactoryDataExtractor:
             "schematicsUnlocked": len(self.data.get('schematics', []))
         }
     
+    def _find_objects_list(self) -> Optional[List[Dict[str, Any]]]:
+        """Find the objects list in the JSON data."""
+        if 'objects' in self.data and isinstance(self.data['objects'], list):
+            return self.data['objects']
+        elif 'Actors' in self.data and isinstance(self.data['Actors'], list):
+            return self.data['Actors']
+        elif 'entities' in self.data and isinstance(self.data['entities'], list):
+            return self.data['entities']
+        return None
+    
     @staticmethod
     def _is_factory_building(obj: Dict[str, Any]) -> bool:
         """Check if object is a factory building."""
+        if not isinstance(obj, dict):
+            return False
+        
         factory_types = [
             'Smelter', 'Assembler', 'Foundry',
             'Miner', 'Extractor', 'Pump',
@@ -265,9 +318,16 @@ class FactoryDataExtractor:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        data = parse_save_file(sys.argv[1])
+    import sys
+    debug_mode = '--debug' in sys.argv
+    save_file = sys.argv[1] if len(sys.argv) > 1 else None
+    
+    if save_file and save_file != '--debug':
+        data = parse_save_file(save_file, debug=debug_mode)
         if data:
             print(json.dumps(data, indent=2))
         else:
             sys.exit(1)
+    else:
+        print("Usage: python parse_save.py <save-file> [--debug]")
+        sys.exit(1)
