@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "satisfactory-ai"
+version = "0.1.0"
+description = "AI-powered factory analyzer for Satisfactory"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Brian Hopkins", email = "totharye.ops@gmail.com" }
+]
+keywords = ["satisfactory", "ai", "factory", "optimization", "claude"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "anthropic>=0.28.0",
+    "click>=8.1.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+satisfactory-ai = "cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/btotharye/satisfactory-ai"
+Repository = "https://github.com/btotharye/satisfactory-ai.git"
+Issues = "https://github.com/btotharye/satisfactory-ai/issues"
+
+[tool.black]
+line-length = 100
+target-version = ["py38"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]  # line too long (handled by black)
+
+[tool.ruff.isort]
+known-first-party = ["parse_save", "analyze_factory"]
