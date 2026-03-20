@@ -33,8 +33,11 @@ pip install -r requirements.txt
 ## Quick Start
 
 ```bash
+# Set your API key
+export ANTHROPIC_API_KEY=your-key-here
+
 # Analyze your save file
-python cli.py analyze ~/path/to/YourWorld_autosave_0.sav
+uv run satisfactory-ai analyze ~/path/to/YourWorld_autosave_0.sav
 
 # Output: Detailed optimization report with AI analysis
 ```
@@ -55,15 +58,27 @@ python cli.py analyze ~/path/to/YourWorld_autosave_0.sav
 ### Basic Analysis
 
 ```bash
-python cli.py analyze <save-file-path>
+uv run satisfactory-ai analyze <save-file-path>
 ```
 
 Outputs a formatted analysis report to the terminal.
 
+Example:
+```bash
+uv run satisfactory-ai analyze ~/MyWorld_autosave_0.sav
+```
+
+### Interactive Analysis
+
+Ask follow-up questions about your factory:
+```bash
+uv run satisfactory-ai analyze <save-file-path> --interactive
+```
+
 ### JSON Output
 
 ```bash
-python cli.py analyze <save-file-path> --json
+uv run satisfactory-ai analyze <save-file-path> --json
 ```
 
 Outputs raw JSON for integration with other tools.
@@ -71,10 +86,18 @@ Outputs raw JSON for integration with other tools.
 ### Detailed Factory Stats
 
 ```bash
-python cli.py stats <save-file-path>
+uv run satisfactory-ai stats <save-file-path>
 ```
 
 Shows parsed factory data (buildings, power, resources, etc.).
+
+### Check Configuration
+
+```bash
+uv run satisfactory-ai config
+```
+
+Verify API key is set and dependencies are working.
 
 ## Configuration
 
