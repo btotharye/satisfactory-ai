@@ -2,11 +2,13 @@
 Parse Satisfactory save files and extract factory data.
 
 Uses sat_sav_parse library to handle binary Unreal Engine format.
-Extracts: buildings, power grid, resources, production rates, etc.
+Converts to JSON then extracts: buildings, power grid, resources, production rates, etc.
 """
 
 import json
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
@@ -32,33 +34,18 @@ def parse_save_file(save_path: str) -> Optional[Dict[str, Any]]:
         return None
     
     try:
-        # Import sat_sav_parse from submodule
-        import sys
-        from pathlib import Path as PathlibPath
-        
-        # Add sat_sav_parse to path
-        sat_sav_path = PathlibPath(__file__).parent.parent / "sat_sav_parse"
-        if sat_sav_path.exists():
-            sys.path.insert(0, str(sat_sav_path))
-        
-        import sav_parse
-        
         print(f"Parsing save file: {save_path}", file=sys.stderr)
         
-        # Parse the save file
-        parsed = sav_parse.readFullSaveFile(str(save_file))
+        # Convert save to JSON using sat_sav_parse CLI
+        json_data = _convert_save_to_json(str(save_file))
         
-        # Extract factory data
-        extractor = FactoryDataExtractor(parsed)
+        if not json_data:
+            return None
+        
+        # Extract factory data from JSON
+        extractor = FactoryDataExtractor(json_data)
         return extractor.extract_all()
     
-    except ImportError as e:
-        print(f"Error: Could not import sat_sav_parse.", file=sys.stderr)
-        print(f"\nTo fix, run:", file=sys.stderr)
-        print(f"  git submodule update --init --recursive", file=sys.stderr)
-        print(f"\nOr if cloning fresh:", file=sys.stderr)
-        print(f"  git clone --recurse-submodules https://github.com/btotharye/satisfactory-ai.git", file=sys.stderr)
-        return None
     except Exception as e:
         error_msg = str(e)
         
@@ -71,34 +58,81 @@ def parse_save_file(save_path: str) -> Optional[Dict[str, Any]]:
             return None
         
         print(f"Error parsing save file: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc(file=sys.stderr)
+        return None
+
+
+def _convert_save_to_json(save_path: str) -> Optional[Dict[str, Any]]:
+    """
+    Convert Satisfactory save file to JSON using sat_sav_parse CLI.
+    
+    Args:
+        save_path: Path to .sav file
+        
+    Returns:
+        Parsed JSON data, or None if conversion fails
+    """
+    try:
+        # Get path to sat_sav_parse submodule
+        sat_sav_path = Path(__file__).parent.parent / "sat_sav_parse"
+        
+        if not sat_sav_path.exists():
+            print(f"Error: sat_sav_parse submodule not found.", file=sys.stderr)
+            print(f"Run: git submodule update --init --recursive", file=sys.stderr)
+            return None
+        
+        # Create temp file for JSON output
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
+            json_output_path = tmp.name
+        
+        # Run sav_cli.py --to-json
+        cmd = [
+            "python3",
+            str(sat_sav_path / "sav_cli.py"),
+            "--to-json",
+            save_path,
+            json_output_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        
+        if result.returncode != 0:
+            print(f"Error running sat_sav_parse: {result.stderr}", file=sys.stderr)
+            return None
+        
+        # Read and parse JSON
+        with open(json_output_path, 'r') as f:
+            data = json.load(f)
+        
+        # Cleanup temp file
+        Path(json_output_path).unlink()
+        
+        return data
+    
+    except subprocess.TimeoutExpired:
+        print(f"Error: Save file parsing timed out (>60 seconds)", file=sys.stderr)
+        return None
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON from parser: {e}", file=sys.stderr)
+        return None
+    except Exception as e:
+        print(f"Error converting save to JSON: {e}", file=sys.stderr)
         return None
 
 
 class FactoryDataExtractor:
-    """Extract relevant factory data from parsed Satisfactory save files."""
+    """Extract relevant factory data from Satisfactory save JSON."""
     
-    def __init__(self, parsed_save: Any):
+    def __init__(self, json_data: Dict[str, Any]):
         """
-        Initialize with parsed save data from sat_sav_parse.
+        Initialize with parsed save JSON data.
         
         Args:
-            parsed_save: Result from sav_parse.readFullSaveFile()
+            json_data: JSON structure from sav_cli.py --to-json
         """
-        self.save = parsed_save
-        self.buildings: List[Dict[str, Any]] = []
-        self.power_grid = {
-            "totalProduction": 0,
-            "totalConsumption": 0,
-            "storage": 0,
-            "batteries": 0,
-            "generators": []
-        }
-        self.resources = {}
-        
+        self.data = json_data
+    
     def extract_all(self) -> Dict[str, Any]:
-        """Extract all factory data from save file."""
+        """Extract all factory data from JSON."""
         return {
             "session": self._extract_session_info(),
             "buildings": self._extract_buildings(),
@@ -110,33 +144,35 @@ class FactoryDataExtractor:
     
     def _extract_session_info(self) -> Dict[str, Any]:
         """Extract session metadata."""
-        # sat_sav_parse.ParsedSave has these attributes
+        # Top-level save metadata
         return {
-            "name": getattr(self.save, 'sessionName', 'Unknown'),
-            "playTime": getattr(self.save, 'playTime', 0),
-            "saveDate": str(getattr(self.save, 'saveDate', '')),
-            "gamePhase": getattr(self.save, 'gamePhase', 0),
-            "activeMilestone": getattr(self.save, 'activeMilestone', '')
+            "name": self.data.get('sessionName', 'Unknown'),
+            "playTime": self.data.get('playTime', 0),
+            "saveDate": self.data.get('saveDate', ''),
+            "gamePhase": self.data.get('gamePhase', 0),
+            "activeMilestone": self.data.get('activeMilestone', '')
         }
     
     def _extract_buildings(self) -> List[Dict[str, Any]]:
-        """
-        Extract all constructed buildings.
-        
-        Returns buildings with type, location, and operational status.
-        """
+        """Extract all constructed buildings from objects."""
         buildings = []
         
         try:
-            if hasattr(self.save, 'objects') and self.save.objects:
-                for obj in self.save.objects:
-                    if self._is_factory_building(obj):
-                        building_data = {
-                            "type": getattr(obj, 'className', 'Unknown'),
-                            "location": self._extract_location(obj),
-                            "name": getattr(obj, 'pathName', ''),
-                        }
-                        buildings.append(building_data)
+            # Building data is in 'objects' list
+            objects = self.data.get('objects', [])
+            
+            for obj in objects:
+                if self._is_factory_building(obj):
+                    building_data = {
+                        "type": obj.get('className', 'Unknown'),
+                        "location": [
+                            obj.get('location', {}).get('x', 0),
+                            obj.get('location', {}).get('y', 0),
+                            obj.get('location', {}).get('z', 0)
+                        ],
+                        "name": obj.get('pathName', ''),
+                    }
+                    buildings.append(building_data)
         except Exception as e:
             print(f"Warning: Could not extract buildings: {e}", file=sys.stderr)
         
@@ -144,54 +180,44 @@ class FactoryDataExtractor:
     
     def _extract_power_grid(self) -> Dict[str, Any]:
         """Extract power grid stats."""
+        power_data = {
+            "totalProduction": 0,
+            "totalConsumption": 0,
+            "storage": 0,
+            "batteries": 0,
+            "generators": []
+        }
+        
         try:
-            # Count power producers and consumers
-            power_data = {
-                "totalProduction": 0,
-                "totalConsumption": 0,
-                "storage": 0,
-                "batteries": 0,
-                "generators": []
-            }
+            objects = self.data.get('objects', [])
             
-            # This would sum up all power generators and consumers from objects
-            # For now, return structure with counts from buildings
-            if hasattr(self.save, 'objects') and self.save.objects:
-                for obj in self.save.objects:
-                    obj_type = getattr(obj, 'className', '')
-                    
-                    # Count generators
-                    if 'Generator' in obj_type or 'Coal' in obj_type:
-                        power_data['generators'].append(obj_type)
-                    
-                    # Count batteries
-                    if 'Battery' in obj_type:
-                        power_data['batteries'] += 1
-            
-            return power_data
+            for obj in objects:
+                obj_type = obj.get('className', '')
+                
+                # Count generators
+                if 'Generator' in obj_type or 'Coal' in obj_type:
+                    power_data['generators'].append(obj_type)
+                
+                # Count batteries
+                if 'Battery' in obj_type:
+                    power_data['batteries'] += 1
+        
         except Exception as e:
             print(f"Warning: Could not extract power grid: {e}", file=sys.stderr)
-            return self.power_grid
+        
+        return power_data
     
     def _extract_resources(self) -> Dict[str, int]:
         """Extract mined/collected resource counts."""
         resources = {}
         
         try:
-            # sat_sav_parse provides resource counts
-            if hasattr(self.save, 'minedResources'):
-                resources = self.save.minedResources
-            elif hasattr(self.save, 'resourceCounts'):
-                resources = self.save.resourceCounts
-            
-            # Fallback: try individual attributes
-            if not resources:
-                resources = {
-                    "ironOre": getattr(self.save, 'ironOreCount', 0),
-                    "copperOre": getattr(self.save, 'copperOreCount', 0),
-                    "limestone": getattr(self.save, 'limestoneCount', 0),
-                    "coal": getattr(self.save, 'coalCount', 0),
-                }
+            # Resources might be in top-level or in a structure
+            if 'minedResources' in self.data:
+                resources = self.data['minedResources']
+            elif 'resources' in self.data:
+                resources = self.data['resources']
+        
         except Exception as e:
             print(f"Warning: Could not extract resources: {e}", file=sys.stderr)
         
@@ -199,7 +225,6 @@ class FactoryDataExtractor:
     
     def _estimate_production_rates(self) -> Dict[str, Any]:
         """Estimate production rates based on building counts."""
-        # Analyze buildings to estimate throughput
         rates = {
             "estimated": True,
             "buildingCounts": {}
@@ -207,7 +232,7 @@ class FactoryDataExtractor:
         
         try:
             # Count each building type
-            for building in self.buildings:
+            for building in self._extract_buildings():
                 btype = building.get('type', 'Unknown')
                 rates['buildingCounts'][btype] = rates['buildingCounts'].get(btype, 0) + 1
         except Exception as e:
@@ -218,40 +243,25 @@ class FactoryDataExtractor:
     def _extract_unlocks(self) -> Dict[str, Any]:
         """Extract tech tree unlocks and milestones."""
         return {
-            "milestonesCompleted": len(getattr(self.save, 'milestones', [])),
-            "schematicsUnlocked": len(getattr(self.save, 'schematics', []))
+            "milestonesCompleted": len(self.data.get('milestones', [])),
+            "schematicsUnlocked": len(self.data.get('schematics', []))
         }
     
     @staticmethod
-    def _is_factory_building(obj: Any) -> bool:
-        """Check if object is a factory building (not just terrain/decorations)."""
+    def _is_factory_building(obj: Dict[str, Any]) -> bool:
+        """Check if object is a factory building."""
         factory_types = [
             'Smelter', 'Assembler', 'Foundry',
-            'Miner', 'Extractor',
-            'Storage', 'Container',
+            'Miner', 'Extractor', 'Pump',
+            'Storage', 'Container', 'Chest',
             'Conveyor', 'Merger', 'Splitter',
-            'Generator', 'Battery',
-            'PowerPole', 'PowerLine',
-            'Pump', 'Distributor',
-            'Refinery'
+            'Generator', 'Battery', 'PowerBank',
+            'PowerPole', 'PowerLine', 'Wire',
+            'Distributor', 'Refinery', 'Constructor'
         ]
         
-        obj_type = getattr(obj, 'className', '')
+        obj_type = obj.get('className', '')
         return any(factory_type in obj_type for factory_type in factory_types)
-    
-    @staticmethod
-    def _extract_location(obj: Any) -> List[float]:
-        """Extract X, Y, Z coordinates from object."""
-        try:
-            if hasattr(obj, 'location'):
-                loc = obj.location
-                if isinstance(loc, dict):
-                    return [loc.get('x', 0), loc.get('y', 0), loc.get('z', 0)]
-                elif hasattr(loc, 'x'):
-                    return [loc.x, loc.y, loc.z]
-        except Exception:
-            pass
-        return [0, 0, 0]
 
 
 if __name__ == "__main__":
