@@ -116,7 +116,7 @@ Verify API key is set and dependencies are working.
 
 ## Configuration
 
-Set your OpenAI API key:
+### Required: Anthropic API Key
 
 ```bash
 export ANTHROPIC_API_KEY=your-key-here
@@ -127,6 +127,25 @@ Or create a `.env` file:
 ```
 ANTHROPIC_API_KEY=your-key-here
 ```
+
+Get a free API key at [console.anthropic.com](https://console.anthropic.com).
+
+### Optional: Claude Model
+
+By default, uses `claude-3-sonnet-20240229` (stable, widely available).
+
+To use a different model:
+
+```bash
+export CLAUDE_MODEL=claude-3-opus-20240229
+# or
+export CLAUDE_MODEL=claude-3-haiku-20240307
+```
+
+Available models:
+- `claude-3-sonnet-20240229` (recommended, balanced)
+- `claude-3-opus-20240229` (more powerful, higher cost)
+- `claude-3-haiku-20240307` (faster, cheaper)
 
 ## Requirements
 

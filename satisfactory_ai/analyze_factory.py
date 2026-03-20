@@ -41,8 +41,12 @@ class FactoryAnalyzer:
         """
         prompt = self._build_analysis_prompt(factory_data)
         
+        # Use Claude 3 Sonnet (stable, widely available)
+        # Or set CLAUDE_MODEL env var for alternatives
+        model = os.getenv("CLAUDE_MODEL", "claude-3-sonnet-20240229")
+        
         response = self.client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model=model,
             max_tokens=2000,
             messages=[{
                 "role": "user",
@@ -68,8 +72,10 @@ class FactoryAnalyzer:
             "content": initial_prompt
         })
         
+        model = os.getenv("CLAUDE_MODEL", "claude-3-sonnet-20240229")
+        
         response = self.client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model=model,
             max_tokens=2000,
             messages=self.conversation_history
         )
@@ -98,7 +104,7 @@ class FactoryAnalyzer:
             })
             
             response = self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model=model,
                 max_tokens=1500,
                 messages=self.conversation_history
             )
