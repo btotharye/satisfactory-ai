@@ -5,7 +5,7 @@ Tests for satisfactory_ai.parse_save — FactoryDataExtractor and parse_save_fil
 import json
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -369,13 +369,6 @@ class TestConvertSaveToJson:
         return p
 
     def test_submodule_not_found_returns_none(self, tmp_path, capsys):
-        with patch(
-            "satisfactory_ai.parse_save.Path",
-            side_effect=lambda *a: _path_mock_no_submodule(tmp_path, *a),
-        ):
-            # Easier: just patch the path resolution so sat_sav_path.exists() is False
-            pass
-
         # Direct approach: temporarily rename sat_sav_parse or patch __file__
         fake_sav = str(tmp_path / "test.sav")
         with patch("satisfactory_ai.parse_save.Path") as mock_path_cls:

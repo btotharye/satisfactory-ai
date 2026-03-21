@@ -10,41 +10,41 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 
 def parse_save_file(save_path: str, debug: bool = False) -> Optional[Dict[str, Any]]:
     """
     Parse a Satisfactory save file and extract factory data.
-    
+
     Args:
         save_path: Path to .sav file
         debug: If True, print detailed debug info
-        
+
     Returns:
         Dictionary with factory data, or None if parsing fails
     """
     save_file = Path(save_path)
-    
+
     if not save_file.exists():
         print(f"Error: Save file not found: {save_path}", file=sys.stderr)
         return None
-    
+
     if not save_file.suffix == '.sav':
         print(f"Error: File must be a .sav file, got: {save_file.suffix}", file=sys.stderr)
         return None
-    
+
     try:
         print(f"Parsing save file: {save_path}", file=sys.stderr)
-        
+
         # Convert save to JSON using sat_sav_parse CLI
         json_data = _convert_save_to_json(str(save_file))
-        
+
         if not json_data:
             return None
-        
+
         if debug:
-            print(f"\n=== DEBUG: JSON Structure ===", file=sys.stderr)
+            print("\n=== DEBUG: JSON Structure ===", file=sys.stderr)
             print(f"Top-level keys: {list(json_data.keys())}", file=sys.stderr)
             levels = json_data.get('levels', {})
             if isinstance(levels, dict):
@@ -55,22 +55,22 @@ def parse_save_file(save_path: str, debug: bool = False) -> Optional[Dict[str, A
                 print(f"Objects count: {len(json_data['objects'])}", file=sys.stderr)
                 if json_data['objects']:
                     print(f"First object keys: {list(json_data['objects'][0].keys())}", file=sys.stderr)
-        
+
         # Extract factory data from JSON
         extractor = FactoryDataExtractor(json_data, debug=debug)
         return extractor.extract_all()
-    
+
     except Exception as e:
         error_msg = str(e)
-        
+
         # Check for version errors
         if "Unsupported save header version" in error_msg:
-            print(f"Error: Your save file is from an unsupported Satisfactory version.", file=sys.stderr)
+            print("Error: Your save file is from an unsupported Satisfactory version.", file=sys.stderr)
             print(f"Details: {error_msg}", file=sys.stderr)
-            print(f"\nSupported versions: Satisfactory 1.1.0 and later (1.1.x, 1.2.x)", file=sys.stderr)
-            print(f"Your save appears to be from an older version.", file=sys.stderr)
+            print("\nSupported versions: Satisfactory 1.1.0 and later (1.1.x, 1.2.x)", file=sys.stderr)
+            print("Your save appears to be from an older version.", file=sys.stderr)
             return None
-        
+
         print(f"Error parsing save file: {e}", file=sys.stderr)
         return None
 
@@ -78,26 +78,26 @@ def parse_save_file(save_path: str, debug: bool = False) -> Optional[Dict[str, A
 def _convert_save_to_json(save_path: str) -> Optional[Dict[str, Any]]:
     """
     Convert Satisfactory save file to JSON using sat_sav_parse CLI.
-    
+
     Args:
         save_path: Path to .sav file
-        
+
     Returns:
         Parsed JSON data, or None if conversion fails
     """
     try:
         # Get path to sat_sav_parse submodule
         sat_sav_path = Path(__file__).parent.parent / "sat_sav_parse"
-        
+
         if not sat_sav_path.exists():
-            print(f"Error: sat_sav_parse submodule not found.", file=sys.stderr)
-            print(f"Run: git submodule update --init --recursive", file=sys.stderr)
+            print("Error: sat_sav_parse submodule not found.", file=sys.stderr)
+            print("Run: git submodule update --init --recursive", file=sys.stderr)
             return None
-        
+
         # Create temp file for JSON output
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
             json_output_path = tmp.name
-        
+
         # Run sav_cli.py --to-json
         cmd = [
             "python3",
@@ -106,24 +106,24 @@ def _convert_save_to_json(save_path: str) -> Optional[Dict[str, Any]]:
             save_path,
             json_output_path
         ]
-        
+
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        
+
         if result.returncode != 0:
             print(f"Error running sat_sav_parse: {result.stderr}", file=sys.stderr)
             return None
-        
+
         # Read and parse JSON
         with open(json_output_path, 'r') as f:
             data = json.load(f)
-        
+
         # Cleanup temp file
         Path(json_output_path).unlink()
-        
+
         return data
-    
+
     except subprocess.TimeoutExpired:
-        print(f"Error: Save file parsing timed out (>60 seconds)", file=sys.stderr)
+        print("Error: Save file parsing timed out (>60 seconds)", file=sys.stderr)
         return None
     except json.JSONDecodeError as e:
         print(f"Error: Invalid JSON from parser: {e}", file=sys.stderr)
@@ -135,11 +135,11 @@ def _convert_save_to_json(save_path: str) -> Optional[Dict[str, Any]]:
 
 class FactoryDataExtractor:
     """Extract relevant factory data from Satisfactory save JSON."""
-    
+
     def __init__(self, json_data: Dict[str, Any], debug: bool = False):
         """
         Initialize with parsed save JSON data.
-        
+
         Args:
             json_data: JSON structure from sav_cli.py --to-json
             debug: If True, print debug info
@@ -174,7 +174,7 @@ class FactoryDataExtractor:
 
         if self.debug:
             print(f"Pre-collected {len(self.all_headers)} objects from {len(list(level_values))} levels", file=sys.stderr)
-    
+
     def extract_all(self) -> Dict[str, Any]:
         """Extract all factory data from JSON."""
         buildings = self._extract_buildings()
@@ -186,7 +186,7 @@ class FactoryDataExtractor:
             "production": self._estimate_production_rates(buildings),
             "unlocks": self._extract_unlocks(),
         }
-    
+
     def _extract_session_info(self) -> Dict[str, Any]:
         """Extract session metadata."""
         # Session info is stored in saveFileInfo in the current save format
@@ -199,7 +199,7 @@ class FactoryDataExtractor:
             "gamePhase": self.data.get('gamePhase', 0),
             "activeMilestone": self.data.get('activeMilestone', '')
         }
-    
+
     def _extract_buildings(self) -> List[Dict[str, Any]]:
         """Extract all player-built factory buildings from object headers."""
         buildings = []
@@ -241,7 +241,7 @@ class FactoryDataExtractor:
                 traceback.print_exc(file=sys.stderr)
 
         return buildings
-    
+
     def _extract_power_grid(self) -> Dict[str, Any]:
         """Extract power grid stats."""
         power_data = {
@@ -269,11 +269,11 @@ class FactoryDataExtractor:
             print(f"Warning: Could not extract power grid: {e}", file=sys.stderr)
 
         return power_data
-    
+
     def _extract_resources(self) -> Dict[str, int]:
         """Extract mined/collected resource counts."""
         resources = {}
-        
+
         try:
             # Resources might be in top-level or in a structure
             if 'minedResources' in self.data:
@@ -282,12 +282,12 @@ class FactoryDataExtractor:
                 resources = self.data['resources']
             elif 'resourceCounts' in self.data:
                 resources = self.data['resourceCounts']
-        
+
         except Exception as e:
             print(f"Warning: Could not extract resources: {e}", file=sys.stderr)
-        
+
         return resources
-    
+
     def _estimate_production_rates(
         self, buildings: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
@@ -308,14 +308,14 @@ class FactoryDataExtractor:
         except Exception as e:
             print(f"Warning: Could not estimate production rates: {e}", file=sys.stderr)
         return rates
-    
+
     def _extract_unlocks(self) -> Dict[str, Any]:
         """Extract tech tree unlocks and milestones."""
         return {
             "milestonesCompleted": len(self.data.get('milestones', [])),
             "schematicsUnlocked": len(self.data.get('schematics', []))
         }
-    
+
     @staticmethod
     def _is_factory_building(hdr: Dict[str, Any]) -> bool:
         """Check if a header's typePath represents a player-built factory building.
@@ -345,7 +345,7 @@ if __name__ == "__main__":
     import sys
     debug_mode = '--debug' in sys.argv
     save_file = sys.argv[1] if len(sys.argv) > 1 else None
-    
+
     if save_file and save_file != '--debug':
         data = parse_save_file(save_file, debug=debug_mode)
         if data:

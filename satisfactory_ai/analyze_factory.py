@@ -6,7 +6,7 @@ Takes extracted factory data and generates optimization recommendations.
 
 import json
 import os
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from anthropic import Anthropic
 
@@ -16,11 +16,11 @@ DEFAULT_MODEL = "claude-sonnet-4-6"
 
 class FactoryAnalyzer:
     """Analyze factory data and generate AI-powered insights."""
-    
+
     def __init__(self, api_key: Optional[str] = None):
         """
         Initialize the analyzer with Claude API.
-        
+
         Args:
             api_key: Anthropic API key (defaults to ANTHROPIC_API_KEY env var)
         """
@@ -29,24 +29,24 @@ class FactoryAnalyzer:
             raise ValueError(
                 "Anthropic API key not found. Set ANTHROPIC_API_KEY environment variable."
             )
-        
+
         self.client = Anthropic(api_key=self.api_key)
         self.conversation_history = []
-    
+
     def analyze(self, factory_data: Dict[str, Any]) -> str:
         """
         Analyze factory data and return optimization recommendations.
-        
+
         Args:
             factory_data: Extracted factory data from parse_save.py
-            
+
         Returns:
             Analysis report as formatted string
         """
         prompt = self._build_analysis_prompt(factory_data)
-        
+
         model = os.getenv("CLAUDE_MODEL", DEFAULT_MODEL)
-        
+
         response = self.client.messages.create(
             model=model,
             max_tokens=2000,
@@ -55,43 +55,43 @@ class FactoryAnalyzer:
                 "content": prompt
             }]
         )
-        
+
         return response.content[0].text
-    
+
     def analyze_interactive(self, factory_data: Dict[str, Any]) -> None:
         """
         Start an interactive analysis session.
-        
+
         Allows follow-up questions about the factory.
         """
         print("Starting interactive factory analysis...")
         print("(Type 'quit' to exit)\n")
-        
+
         # Initial analysis
         initial_prompt = self._build_analysis_prompt(factory_data)
         self.conversation_history.append({
             "role": "user",
             "content": initial_prompt
         })
-        
+
         model = os.getenv("CLAUDE_MODEL", DEFAULT_MODEL)
-        
+
         response = self.client.messages.create(
             model=model,
             max_tokens=2000,
             messages=self.conversation_history
         )
-        
+
         analysis = response.content[0].text
         print("=== Factory Analysis ===\n")
         print(analysis)
         print("\n" + "="*50 + "\n")
-        
+
         self.conversation_history.append({
             "role": "assistant",
             "content": analysis
         })
-        
+
         # Interactive follow-ups
         while True:
             user_input = input("Ask a follow-up question (or 'quit'): ").strip()
@@ -99,26 +99,26 @@ class FactoryAnalyzer:
                 break
             if not user_input:
                 continue
-            
+
             self.conversation_history.append({
                 "role": "user",
                 "content": user_input
             })
-            
+
             response = self.client.messages.create(
                 model=model,
                 max_tokens=1500,
                 messages=self.conversation_history
             )
-            
+
             answer = response.content[0].text
             print(f"\n{answer}\n")
-            
+
             self.conversation_history.append({
                 "role": "assistant",
                 "content": answer
             })
-    
+
     @staticmethod
     def _build_analysis_prompt(factory_data: Dict[str, Any]) -> str:
         """Build the analysis prompt for Claude."""
@@ -177,23 +177,23 @@ Be specific and reference the actual building types listed above."""
 def analyze_save_file(save_data: Dict[str, Any], interactive: bool = False) -> str:
     """
     Analyze factory save data using Claude.
-    
+
     Args:
         save_data: Parsed factory data
         interactive: If True, start interactive session
-        
+
     Returns:
         Analysis report as string
     """
     try:
         analyzer = FactoryAnalyzer()
-        
+
         if interactive:
             analyzer.analyze_interactive(save_data)
             return ""
         else:
             return analyzer.analyze(save_data)
-    
+
     except ValueError as e:
         return f"Error: {e}\n\nMake sure to set the ANTHROPIC_API_KEY environment variable."
     except Exception as e:
@@ -212,5 +212,5 @@ if __name__ == "__main__":
         "powerGrid": {},
         "resources": {}
     }
-    
+
     print(analyze_save_file(sample_data))

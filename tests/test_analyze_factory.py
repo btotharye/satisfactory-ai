@@ -2,7 +2,6 @@
 Tests for satisfactory_ai.analyze_factory — FactoryAnalyzer and analyze_save_file.
 """
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
