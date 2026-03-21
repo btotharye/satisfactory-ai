@@ -41,9 +41,9 @@ uv sync
 ### With pip
 
 ```bash
-git clone https://github.com/btotharye/satisfactory-ai.git
+git clone --recurse-submodules https://github.com/btotharye/satisfactory-ai.git
 cd satisfactory-ai
-pip install -r requirements.txt
+pip install .
 ```
 
 ## Quick Start
