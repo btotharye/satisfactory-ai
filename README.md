@@ -1,4 +1,5 @@
-# satisfactory-ai
+# satisfactory-ai 
+[![codecov](https://codecov.io/gh/btotharye/satisfactory-ai/branch/main/graph/badge.svg?token=J7nQdTHwJN)](https://codecov.io/gh/btotharye/satisfactory-ai)
 
 AI-powered factory analyzer for Satisfactory. Upload your save file and get intelligent optimization suggestions, bottleneck analysis, and production insights powered by Claude AI.
 
