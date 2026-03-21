@@ -6,8 +6,12 @@ Takes extracted factory data and generates optimization recommendations.
 
 import json
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
+
 from anthropic import Anthropic
+
+# Default Claude model — override with the CLAUDE_MODEL environment variable.
+DEFAULT_MODEL = "claude-sonnet-4-6"
 
 
 class FactoryAnalyzer:
@@ -41,9 +45,7 @@ class FactoryAnalyzer:
         """
         prompt = self._build_analysis_prompt(factory_data)
         
-        # Use Claude 4.6 Sonnet by default (best quality/cost ratio)
-        # Or set CLAUDE_MODEL env var for alternatives
-        model = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+        model = os.getenv("CLAUDE_MODEL", DEFAULT_MODEL)
         
         response = self.client.messages.create(
             model=model,
@@ -72,7 +74,7 @@ class FactoryAnalyzer:
             "content": initial_prompt
         })
         
-        model = os.getenv("CLAUDE_MODEL", "claude-3-sonnet-20240229")
+        model = os.getenv("CLAUDE_MODEL", DEFAULT_MODEL)
         
         response = self.client.messages.create(
             model=model,
@@ -119,42 +121,56 @@ class FactoryAnalyzer:
     
     @staticmethod
     def _build_analysis_prompt(factory_data: Dict[str, Any]) -> str:
-        """Build the prompt for Claude analysis."""
-        
+        """Build the analysis prompt for Claude."""
         session = factory_data.get("session", {})
-        buildings = factory_data.get("buildings", [])
+        buildings: List[Dict[str, Any]] = factory_data.get("buildings", [])
         power = factory_data.get("powerGrid", {})
         resources = factory_data.get("resources", {})
-        
-        prompt = f"""You are an expert Satisfactory factory advisor. Analyze this factory and provide optimization recommendations.
+        production = factory_data.get("production", {})
+
+        # Summarise buildings by type count rather than dumping every instance
+        building_counts = production.get("buildingCounts", {})
+        building_summary = (
+            "\n".join(f"  - {btype}: {count}" for btype, count in sorted(building_counts.items()))
+            if building_counts
+            else "  (none)"
+        )
+
+        generators = power.get("generators", [])
+        generator_summary = (
+            "\n".join(f"  - {g}" for g in sorted(set(generators)))
+            if generators
+            else "  (none)"
+        )
+
+        prompt = f"""You are an expert Satisfactory factory advisor. Analyze this factory and provide specific, actionable optimization recommendations.
 
 FACTORY DATA:
 - Session: {session.get('name', 'Unknown')}
 - Play Time: {session.get('playTime', 0) / 3600:.1f} hours
-- Game Phase: {session.get('gamePhase', 0)}
-- Active Milestone: {session.get('activeMilestone', 'None')}
+- Game Build Version: {session.get('buildVersion', 'Unknown')}
+- Active Milestone: {session.get('activeMilestone', 'None') or 'None'}
 
 BUILDINGS ({len(buildings)} total):
-{json.dumps(buildings[:20], indent=2) if buildings else "No data"}
+{building_summary}
 
 POWER GRID:
-- Production: {power.get('totalProduction', 0)} MW
-- Consumption: {power.get('totalConsumption', 0)} MW
-- Storage: {power.get('storage', 0)} MWh
-- Batteries: {power.get('batteries', 0)}
+- Total Generators: {len(generators)}
+{generator_summary}
+- Batteries/Storage: {power.get('batteries', 0)}
 
-RESOURCES MINED:
-{json.dumps(resources, indent=2) if resources else "No data"}
+RESOURCES:
+{json.dumps(resources, indent=2) if resources else "  (none recorded)"}
 
 Please provide:
-1. **Bottlenecks** - What's limiting production?
-2. **Power Analysis** - How efficient is the power grid?
-3. **Key Recommendations** - Top 3 priorities for optimization
-4. **Building Suggestions** - Specific building count adjustments
-5. **Estimated Impact** - Time/resource cost for each recommendation
+1. **Current State** — Brief summary of what the factory has built so far
+2. **Bottlenecks** — What is limiting production right now?
+3. **Power Analysis** — Is the power setup sufficient for expansion?
+4. **Top 3 Priorities** — Most impactful next steps, specific to the buildings listed
+5. **What to Build Next** — Concrete building recommendations with counts
 
-Be specific and actionable. Reference actual building types and numbers."""
-        
+Be specific and reference the actual building types listed above."""
+
         return prompt
 
 

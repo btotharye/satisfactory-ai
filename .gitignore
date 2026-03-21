@@ -51,3 +51,6 @@ output/
 reports/
 *.html
 *.json
+.coverage
+coverage.xml
+*.log

@@ -46,7 +46,12 @@ def parse_save_file(save_path: str, debug: bool = False) -> Optional[Dict[str, A
         if debug:
             print(f"\n=== DEBUG: JSON Structure ===", file=sys.stderr)
             print(f"Top-level keys: {list(json_data.keys())}", file=sys.stderr)
-            if 'objects' in json_data:
+            levels = json_data.get('levels', {})
+            if isinstance(levels, dict):
+                total_objs = sum(len(lvl.get('objects', [])) for lvl in levels.values() if isinstance(lvl, dict))
+                non_empty = sum(1 for lvl in levels.values() if isinstance(lvl, dict) and lvl.get('objects'))
+                print(f"Levels: {len(levels)} total ({non_empty} with objects, {total_objs} total objects)", file=sys.stderr)
+            elif 'objects' in json_data:
                 print(f"Objects count: {len(json_data['objects'])}", file=sys.stderr)
                 if json_data['objects']:
                     print(f"First object keys: {list(json_data['objects'][0].keys())}", file=sys.stderr)
@@ -141,76 +146,100 @@ class FactoryDataExtractor:
         """
         self.data = json_data
         self.debug = debug
+
+        # Pre-collect all objects and headers from all levels.
+        # The save format stores data in data['levels'][hash]['objects'] and
+        # data['levels'][hash]['objectHeaders'] rather than a flat list.
+        self.all_objects: List[Dict[str, Any]] = []
+        self.all_headers: List[Dict[str, Any]] = []
+        self.objects_by_name: Dict[str, Dict[str, Any]] = {}
+        self.headers_by_name: Dict[str, Dict[str, Any]] = {}
+
+        levels = json_data.get('levels', {})
+        level_values = levels.values() if isinstance(levels, dict) else (levels if isinstance(levels, list) else [])
+
+        for lvl in level_values:
+            if not isinstance(lvl, dict):
+                continue
+            for obj in lvl.get('objects', []):
+                self.all_objects.append(obj)
+                name = obj.get('instanceName', '')
+                if name:
+                    self.objects_by_name[name] = obj
+            for hdr in lvl.get('objectHeaders', []):
+                self.all_headers.append(hdr)
+                name = hdr.get('instanceName', '')
+                if name:
+                    self.headers_by_name[name] = hdr
+
+        if self.debug:
+            print(f"Pre-collected {len(self.all_headers)} objects from {len(list(level_values))} levels", file=sys.stderr)
     
     def extract_all(self) -> Dict[str, Any]:
         """Extract all factory data from JSON."""
+        buildings = self._extract_buildings()
         return {
             "session": self._extract_session_info(),
-            "buildings": self._extract_buildings(),
+            "buildings": buildings,
             "powerGrid": self._extract_power_grid(),
             "resources": self._extract_resources(),
-            "production": self._estimate_production_rates(),
-            "unlocks": self._extract_unlocks()
+            "production": self._estimate_production_rates(buildings),
+            "unlocks": self._extract_unlocks(),
         }
     
     def _extract_session_info(self) -> Dict[str, Any]:
         """Extract session metadata."""
+        # Session info is stored in saveFileInfo in the current save format
+        save_info = self.data.get('saveFileInfo', {})
         return {
-            "name": self.data.get('sessionName', 'Unknown'),
-            "playTime": self.data.get('playTime', 0),
-            "saveDate": self.data.get('saveDate', ''),
+            "name": save_info.get('sessionName', self.data.get('sessionName', 'Unknown')),
+            "playTime": save_info.get('playDurationInSeconds', self.data.get('playTime', 0)),
+            "saveDate": save_info.get('saveDatetime', self.data.get('saveDate', '')),
+            "buildVersion": save_info.get('buildVersion', 0),
             "gamePhase": self.data.get('gamePhase', 0),
             "activeMilestone": self.data.get('activeMilestone', '')
         }
     
     def _extract_buildings(self) -> List[Dict[str, Any]]:
-        """Extract all constructed buildings from objects."""
+        """Extract all player-built factory buildings from object headers."""
         buildings = []
-        
+
         try:
-            # Try multiple possible locations for building data
-            objects = None
-            
-            # Try 'objects' first
-            if 'objects' in self.data and isinstance(self.data['objects'], list):
-                objects = self.data['objects']
-            # Try 'Actors' 
-            elif 'Actors' in self.data and isinstance(self.data['Actors'], list):
-                objects = self.data['Actors']
-            # Try 'entities'
-            elif 'entities' in self.data and isinstance(self.data['entities'], list):
-                objects = self.data['entities']
-            
-            if not objects:
+            if not self.all_headers:
                 if self.debug:
-                    print(f"Warning: No objects/Actors/entities found in save data", file=sys.stderr)
+                    print("Warning: No objects found in save data", file=sys.stderr)
                 return buildings
-            
+
             if self.debug:
-                print(f"Found {len(objects)} objects to check", file=sys.stderr)
-            
-            for obj in objects:
-                if self._is_factory_building(obj):
+                print(f"Checking {len(self.all_headers)} objects for factory buildings", file=sys.stderr)
+
+            for hdr in self.all_headers:
+                if self._is_factory_building(hdr):
+                    type_path = hdr.get('typePath', 'Unknown')
+                    # Short class name: last segment after the dot, e.g. "Build_MinerMk1_C"
+                    short_type = type_path.split('.')[-1] if '.' in type_path else type_path.split('/')[-1]
+                    pos = hdr.get('position') or [0, 0, 0]
                     building_data = {
-                        "type": obj.get('className', 'Unknown'),
+                        "type": short_type,
+                        "typePath": type_path,
                         "location": [
-                            obj.get('location', {}).get('x', 0) if isinstance(obj.get('location'), dict) else 0,
-                            obj.get('location', {}).get('y', 0) if isinstance(obj.get('location'), dict) else 0,
-                            obj.get('location', {}).get('z', 0) if isinstance(obj.get('location'), dict) else 0
+                            pos[0] if len(pos) > 0 else 0,
+                            pos[1] if len(pos) > 1 else 0,
+                            pos[2] if len(pos) > 2 else 0,
                         ],
-                        "name": obj.get('pathName', ''),
+                        "name": hdr.get('instanceName', ''),
                     }
                     buildings.append(building_data)
-            
+
             if self.debug:
                 print(f"Extracted {len(buildings)} factory buildings", file=sys.stderr)
-        
+
         except Exception as e:
             print(f"Warning: Could not extract buildings: {e}", file=sys.stderr)
             if self.debug:
                 import traceback
                 traceback.print_exc(file=sys.stderr)
-        
+
         return buildings
     
     def _extract_power_grid(self) -> Dict[str, Any]:
@@ -222,27 +251,23 @@ class FactoryDataExtractor:
             "batteries": 0,
             "generators": []
         }
-        
+
         try:
-            # Find objects list
-            objects = self._find_objects_list()
-            if not objects:
-                return power_data
-            
-            for obj in objects:
-                obj_type = obj.get('className', '')
-                
-                # Count generators
-                if 'Generator' in obj_type or 'Coal' in obj_type:
-                    power_data['generators'].append(obj_type)
-                
+            for hdr in self.all_headers:
+                type_path = hdr.get('typePath', '')
+                short_type = type_path.split('.')[-1] if '.' in type_path else type_path.split('/')[-1]
+
+                # Count generators (biomass, coal, fuel, nuclear, etc.)
+                if 'Generator' in type_path:
+                    power_data['generators'].append(short_type)
+
                 # Count batteries
-                if 'Battery' in obj_type:
+                if 'Battery' in type_path or 'PowerStorage' in type_path:
                     power_data['batteries'] += 1
-        
+
         except Exception as e:
             print(f"Warning: Could not extract power grid: {e}", file=sys.stderr)
-        
+
         return power_data
     
     def _extract_resources(self) -> Dict[str, int]:
@@ -263,21 +288,25 @@ class FactoryDataExtractor:
         
         return resources
     
-    def _estimate_production_rates(self) -> Dict[str, Any]:
-        """Estimate production rates based on building counts."""
-        rates = {
+    def _estimate_production_rates(
+        self, buildings: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """Summarise production rates as building-type counts.
+
+        Args:
+            buildings: Pre-computed building list. If omitted the buildings are
+                       re-extracted (useful when calling this method in isolation).
+        """
+        rates: Dict[str, Any] = {
             "estimated": True,
-            "buildingCounts": {}
+            "buildingCounts": {},
         }
-        
         try:
-            # Count each building type
-            for building in self._extract_buildings():
-                btype = building.get('type', 'Unknown')
-                rates['buildingCounts'][btype] = rates['buildingCounts'].get(btype, 0) + 1
+            for building in (buildings if buildings is not None else self._extract_buildings()):
+                btype = building.get("type", "Unknown")
+                rates["buildingCounts"][btype] = rates["buildingCounts"].get(btype, 0) + 1
         except Exception as e:
             print(f"Warning: Could not estimate production rates: {e}", file=sys.stderr)
-        
         return rates
     
     def _extract_unlocks(self) -> Dict[str, Any]:
@@ -287,34 +316,29 @@ class FactoryDataExtractor:
             "schematicsUnlocked": len(self.data.get('schematics', []))
         }
     
-    def _find_objects_list(self) -> Optional[List[Dict[str, Any]]]:
-        """Find the objects list in the JSON data."""
-        if 'objects' in self.data and isinstance(self.data['objects'], list):
-            return self.data['objects']
-        elif 'Actors' in self.data and isinstance(self.data['Actors'], list):
-            return self.data['Actors']
-        elif 'entities' in self.data and isinstance(self.data['entities'], list):
-            return self.data['entities']
-        return None
-    
     @staticmethod
-    def _is_factory_building(obj: Dict[str, Any]) -> bool:
-        """Check if object is a factory building."""
-        if not isinstance(obj, dict):
+    def _is_factory_building(hdr: Dict[str, Any]) -> bool:
+        """Check if a header's typePath represents a player-built factory building.
+
+        All buildable factory objects in Satisfactory use the Build_ prefix
+        and live under the /Buildable/ path segment.
+        """
+        if not isinstance(hdr, dict):
             return False
-        
-        factory_types = [
+
+        type_path = hdr.get('typePath', '')
+        # All player-placed buildings are under /Buildable/ and have Build_ in the name
+        if '/Buildable/' in type_path and 'Build_' in type_path:
+            return True
+        # Fallback keyword check for any edge cases
+        factory_keywords = [
             'Smelter', 'Assembler', 'Foundry',
-            'Miner', 'Extractor', 'Pump',
-            'Storage', 'Container', 'Chest',
-            'Conveyor', 'Merger', 'Splitter',
-            'Generator', 'Battery', 'PowerBank',
-            'PowerPole', 'PowerLine', 'Wire',
-            'Distributor', 'Refinery', 'Constructor'
+            'MinerMk', 'OilPump', 'WaterExtractor',
+            'Constructor', 'Manufacturer', 'Refinery',
+            'Packager', 'Blender', 'HadronCollider',
+            'Generator', 'PowerStorage',
         ]
-        
-        obj_type = obj.get('className', '')
-        return any(factory_type in obj_type for factory_type in factory_types)
+        return any(kw in type_path for kw in factory_keywords)
 
 
 if __name__ == "__main__":
