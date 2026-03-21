@@ -1,0 +1,120 @@
+{
+  "saveFileInfo": {
+    "sessionName": "TestSession",
+    "playDurationInSeconds": 3600,
+    "saveDatetime": "01/01/2025 12:00:00 PM",
+    "buildVersion": 12345
+  },
+  "levels": {
+    "LEVEL_HASH_1": {
+      "objectHeaders": [
+        {
+          "typePath": "/Game/FactoryGame/Buildable/Factory/MinerMK1/Build_MinerMk1.Build_MinerMk1_C",
+          "instanceName": "Persistent_Level:PersistentLevel.Build_MinerMk1_C_001",
+          "needTransform": true,
+          "position": [100.0, 200.0, 300.0],
+          "rotation": [0.0, 0.0, 0.0, 1.0],
+          "scale": [1.0, 1.0, 1.0],
+          "wasPlacedInLevel": false
+        },
+        {
+          "typePath": "/Game/FactoryGame/Buildable/Factory/SmelterMk1/Build_SmelterMk1.Build_SmelterMk1_C",
+          "instanceName": "Persistent_Level:PersistentLevel.Build_SmelterMk1_C_001",
+          "needTransform": true,
+          "position": [150.0, 200.0, 300.0],
+          "rotation": [0.0, 0.0, 0.0, 1.0],
+          "scale": [1.0, 1.0, 1.0],
+          "wasPlacedInLevel": false
+        },
+        {
+          "typePath": "/Game/FactoryGame/Buildable/Factory/GeneratorBiomass/Build_GeneratorIntegratedBiomass.Build_GeneratorIntegratedBiomass_C",
+          "instanceName": "Persistent_Level:PersistentLevel.Build_GeneratorIntegratedBiomass_C_001",
+          "needTransform": true,
+          "position": [200.0, 200.0, 300.0],
+          "rotation": [0.0, 0.0, 0.0, 1.0],
+          "scale": [1.0, 1.0, 1.0],
+          "wasPlacedInLevel": false
+        },
+        {
+          "typePath": "/Game/FactoryGame/Character/Creature/Wildlife/SpaceGiraffe/Char_SpaceGiraffe.Char_SpaceGiraffe_C",
+          "instanceName": "Persistent_Level:PersistentLevel.Char_SpaceGiraffe_C_001",
+          "needTransform": true,
+          "position": [500.0, 500.0, 100.0],
+          "rotation": [0.0, 0.0, 0.0, 1.0],
+          "scale": [1.0, 1.0, 1.0],
+          "wasPlacedInLevel": true
+        },
+        {
+          "typePath": "/Game/FactoryGame/Buildable/Factory/ConveyorBeltMk1/Build_ConveyorBeltMk1.Build_ConveyorBeltMk1_C",
+          "instanceName": "Persistent_Level:PersistentLevel.Build_ConveyorBeltMk1_C_001",
+          "needTransform": true,
+          "position": [120.0, 200.0, 300.0],
+          "rotation": [0.0, 0.0, 0.0, 1.0],
+          "scale": [1.0, 1.0, 1.0],
+          "wasPlacedInLevel": false
+        }
+      ],
+      "objects": [
+        {
+          "instanceName": "Persistent_Level:PersistentLevel.Build_MinerMk1_C_001",
+          "objectGameVersion": 58,
+          "smortpFlag": false,
+          "properties": [],
+          "propertyTypes": [],
+          "actorSpecificInfo": null,
+          "perObjectVersionData": []
+        },
+        {
+          "instanceName": "Persistent_Level:PersistentLevel.Build_SmelterMk1_C_001",
+          "objectGameVersion": 58,
+          "smortpFlag": false,
+          "properties": [],
+          "propertyTypes": [],
+          "actorSpecificInfo": null,
+          "perObjectVersionData": []
+        },
+        {
+          "instanceName": "Persistent_Level:PersistentLevel.Build_GeneratorIntegratedBiomass_C_001",
+          "objectGameVersion": 58,
+          "smortpFlag": false,
+          "properties": [],
+          "propertyTypes": [],
+          "actorSpecificInfo": null,
+          "perObjectVersionData": []
+        },
+        {
+          "instanceName": "Persistent_Level:PersistentLevel.Char_SpaceGiraffe_C_001",
+          "objectGameVersion": 58,
+          "smortpFlag": false,
+          "properties": [],
+          "propertyTypes": [],
+          "actorSpecificInfo": null,
+          "perObjectVersionData": []
+        },
+        {
+          "instanceName": "Persistent_Level:PersistentLevel.Build_ConveyorBeltMk1_C_001",
+          "objectGameVersion": 58,
+          "smortpFlag": false,
+          "properties": [],
+          "propertyTypes": [],
+          "actorSpecificInfo": null,
+          "perObjectVersionData": []
+        }
+      ],
+      "levelSaveVersion": 58,
+      "levelPersistentFlag": null,
+      "collectables1": [],
+      "collectables2": [],
+      "saveObjectVersionData": []
+    },
+    "LEVEL_HASH_EMPTY": {
+      "objectHeaders": [],
+      "objects": [],
+      "levelSaveVersion": 58,
+      "levelPersistentFlag": null,
+      "collectables1": [],
+      "collectables2": [],
+      "saveObjectVersionData": []
+    }
+  }
+}
