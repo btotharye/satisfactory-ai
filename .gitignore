@@ -51,6 +51,8 @@ output/
 reports/
 *.html
 *.json
+# Keep test fixtures even though *.json is excluded above
+!tests/fixtures/*.json
 .coverage
 coverage.xml
 *.log

@@ -2,6 +2,7 @@
 Tests for satisfactory_ai.analyze_factory — FactoryAnalyzer and analyze_save_file.
 """
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -181,7 +182,8 @@ class TestAnalyzeSaveFile:
         result = analyze_save_file(SAMPLE_FACTORY_DATA)
         assert "ANTHROPIC_API_KEY" in result
 
-    def test_returns_analysis_string_on_success(self):
+    def test_returns_analysis_string_on_success(self, monkeypatch):
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         with patch("satisfactory_ai.analyze_factory.Anthropic") as mock_cls:
             mock_client = MagicMock()
             mock_cls.return_value = mock_client
