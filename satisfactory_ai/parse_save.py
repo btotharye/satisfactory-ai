@@ -30,7 +30,7 @@ def parse_save_file(save_path: str, debug: bool = False) -> Optional[Dict[str, A
         print(f"Error: Save file not found: {save_path}", file=sys.stderr)
         return None
 
-    if not save_file.suffix == ".sav":
+    if not save_file.suffix == '.sav':
         print(f"Error: File must be a .sav file, got: {save_file.suffix}", file=sys.stderr)
         return None
 
@@ -46,25 +46,15 @@ def parse_save_file(save_path: str, debug: bool = False) -> Optional[Dict[str, A
         if debug:
             print("\n=== DEBUG: JSON Structure ===", file=sys.stderr)
             print(f"Top-level keys: {list(json_data.keys())}", file=sys.stderr)
-            levels = json_data.get("levels", {})
+            levels = json_data.get('levels', {})
             if isinstance(levels, dict):
-                total_objs = sum(
-                    len(lvl.get("objects", [])) for lvl in levels.values() if isinstance(lvl, dict)
-                )
-                non_empty = sum(
-                    1 for lvl in levels.values() if isinstance(lvl, dict) and lvl.get("objects")
-                )
-                print(
-                    f"Levels: {len(levels)} total ({non_empty} with objects, {total_objs} total objects)",
-                    file=sys.stderr,
-                )
-            elif "objects" in json_data:
+                total_objs = sum(len(lvl.get('objects', [])) for lvl in levels.values() if isinstance(lvl, dict))
+                non_empty = sum(1 for lvl in levels.values() if isinstance(lvl, dict) and lvl.get('objects'))
+                print(f"Levels: {len(levels)} total ({non_empty} with objects, {total_objs} total objects)", file=sys.stderr)
+            elif 'objects' in json_data:
                 print(f"Objects count: {len(json_data['objects'])}", file=sys.stderr)
-                if json_data["objects"]:
-                    print(
-                        f"First object keys: {list(json_data['objects'][0].keys())}",
-                        file=sys.stderr,
-                    )
+                if json_data['objects']:
+                    print(f"First object keys: {list(json_data['objects'][0].keys())}", file=sys.stderr)
 
         # Extract factory data from JSON
         extractor = FactoryDataExtractor(json_data, debug=debug)
@@ -75,14 +65,9 @@ def parse_save_file(save_path: str, debug: bool = False) -> Optional[Dict[str, A
 
         # Check for version errors
         if "Unsupported save header version" in error_msg:
-            print(
-                "Error: Your save file is from an unsupported Satisfactory version.",
-                file=sys.stderr,
-            )
+            print("Error: Your save file is from an unsupported Satisfactory version.", file=sys.stderr)
             print(f"Details: {error_msg}", file=sys.stderr)
-            print(
-                "\nSupported versions: Satisfactory 1.1.0 and later (1.1.x, 1.2.x)", file=sys.stderr
-            )
+            print("\nSupported versions: Satisfactory 1.1.0 and later (1.1.x, 1.2.x)", file=sys.stderr)
             print("Your save appears to be from an older version.", file=sys.stderr)
             return None
 
@@ -110,7 +95,7 @@ def _convert_save_to_json(save_path: str) -> Optional[Dict[str, Any]]:
             return None
 
         # Create temp file for JSON output
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
             json_output_path = tmp.name
 
         # Run sav_cli.py --to-json
@@ -119,7 +104,7 @@ def _convert_save_to_json(save_path: str) -> Optional[Dict[str, Any]]:
             str(sat_sav_path / "sav_cli.py"),
             "--to-json",
             save_path,
-            json_output_path,
+            json_output_path
         ]
 
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
@@ -129,8 +114,8 @@ def _convert_save_to_json(save_path: str) -> Optional[Dict[str, Any]]:
             return None
 
         # Read and parse JSON
-        with open(json_output_path, "r") as f:
-            data = json.load(f)
+        with open(json_output_path, 'r') as f:
+            data: Dict[str, Any] = json.load(f)
 
         # Cleanup temp file
         Path(json_output_path).unlink()
@@ -170,32 +155,25 @@ class FactoryDataExtractor:
         self.objects_by_name: Dict[str, Dict[str, Any]] = {}
         self.headers_by_name: Dict[str, Dict[str, Any]] = {}
 
-        levels = json_data.get("levels", {})
-        level_values = (
-            levels.values()
-            if isinstance(levels, dict)
-            else (levels if isinstance(levels, list) else [])
-        )
+        levels = json_data.get('levels', {})
+        level_values = levels.values() if isinstance(levels, dict) else (levels if isinstance(levels, list) else [])
 
         for lvl in level_values:
             if not isinstance(lvl, dict):
                 continue
-            for obj in lvl.get("objects", []):
+            for obj in lvl.get('objects', []):
                 self.all_objects.append(obj)
-                name = obj.get("instanceName", "")
+                name = obj.get('instanceName', '')
                 if name:
                     self.objects_by_name[name] = obj
-            for hdr in lvl.get("objectHeaders", []):
+            for hdr in lvl.get('objectHeaders', []):
                 self.all_headers.append(hdr)
-                name = hdr.get("instanceName", "")
+                name = hdr.get('instanceName', '')
                 if name:
                     self.headers_by_name[name] = hdr
 
         if self.debug:
-            print(
-                f"Pre-collected {len(self.all_headers)} objects from {len(list(level_values))} levels",
-                file=sys.stderr,
-            )
+            print(f"Pre-collected {len(self.all_headers)} objects from {len(list(level_values))} levels", file=sys.stderr)
 
     def extract_all(self) -> Dict[str, Any]:
         """Extract all factory data from JSON."""
@@ -212,19 +190,19 @@ class FactoryDataExtractor:
     def _extract_session_info(self) -> Dict[str, Any]:
         """Extract session metadata."""
         # Session info is stored in saveFileInfo in the current save format
-        save_info = self.data.get("saveFileInfo", {})
+        save_info = self.data.get('saveFileInfo', {})
         return {
-            "name": save_info.get("sessionName", self.data.get("sessionName", "Unknown")),
-            "playTime": save_info.get("playDurationInSeconds", self.data.get("playTime", 0)),
-            "saveDate": save_info.get("saveDatetime", self.data.get("saveDate", "")),
-            "buildVersion": save_info.get("buildVersion", 0),
-            "gamePhase": self.data.get("gamePhase", 0),
-            "activeMilestone": self.data.get("activeMilestone", ""),
+            "name": save_info.get('sessionName', self.data.get('sessionName', 'Unknown')),
+            "playTime": save_info.get('playDurationInSeconds', self.data.get('playTime', 0)),
+            "saveDate": save_info.get('saveDatetime', self.data.get('saveDate', '')),
+            "buildVersion": save_info.get('buildVersion', 0),
+            "gamePhase": self.data.get('gamePhase', 0),
+            "activeMilestone": self.data.get('activeMilestone', '')
         }
 
     def _extract_buildings(self) -> List[Dict[str, Any]]:
         """Extract all player-built factory buildings from object headers."""
-        buildings = []
+        buildings: List[Dict[str, Any]] = []
 
         try:
             if not self.all_headers:
@@ -233,19 +211,14 @@ class FactoryDataExtractor:
                 return buildings
 
             if self.debug:
-                print(
-                    f"Checking {len(self.all_headers)} objects for factory buildings",
-                    file=sys.stderr,
-                )
+                print(f"Checking {len(self.all_headers)} objects for factory buildings", file=sys.stderr)
 
             for hdr in self.all_headers:
                 if self._is_factory_building(hdr):
-                    type_path = hdr.get("typePath", "Unknown")
+                    type_path = hdr.get('typePath', 'Unknown')
                     # Short class name: last segment after the dot, e.g. "Build_MinerMk1_C"
-                    short_type = (
-                        type_path.split(".")[-1] if "." in type_path else type_path.split("/")[-1]
-                    )
-                    pos = hdr.get("position") or [0, 0, 0]
+                    short_type = type_path.split('.')[-1] if '.' in type_path else type_path.split('/')[-1]
+                    pos = hdr.get('position') or [0, 0, 0]
                     building_data = {
                         "type": short_type,
                         "typePath": type_path,
@@ -254,7 +227,7 @@ class FactoryDataExtractor:
                             pos[1] if len(pos) > 1 else 0,
                             pos[2] if len(pos) > 2 else 0,
                         ],
-                        "name": hdr.get("instanceName", ""),
+                        "name": hdr.get('instanceName', ''),
                     }
                     buildings.append(building_data)
 
@@ -265,14 +238,13 @@ class FactoryDataExtractor:
             print(f"Warning: Could not extract buildings: {e}", file=sys.stderr)
             if self.debug:
                 import traceback
-
                 traceback.print_exc(file=sys.stderr)
 
         return buildings
 
     def _extract_power_grid(self) -> Dict[str, Any]:
         """Extract power grid stats."""
-        power_data = {
+        power_data: Dict[str, Any] = {
             "totalProduction": 0,
             "totalConsumption": 0,
             "storage": 0,
@@ -282,18 +254,16 @@ class FactoryDataExtractor:
 
         try:
             for hdr in self.all_headers:
-                type_path = hdr.get("typePath", "")
-                short_type = (
-                    type_path.split(".")[-1] if "." in type_path else type_path.split("/")[-1]
-                )
+                type_path = hdr.get('typePath', '')
+                short_type = type_path.split('.')[-1] if '.' in type_path else type_path.split('/')[-1]
 
                 # Count generators (biomass, coal, fuel, nuclear, etc.)
-                if "Generator" in type_path:
-                    power_data["generators"].append(short_type)
+                if 'Generator' in type_path:
+                    power_data['generators'].append(short_type)
 
                 # Count batteries
-                if "Battery" in type_path or "PowerStorage" in type_path:
-                    power_data["batteries"] += 1
+                if 'Battery' in type_path or 'PowerStorage' in type_path:
+                    power_data['batteries'] += 1
 
         except Exception as e:
             print(f"Warning: Could not extract power grid: {e}", file=sys.stderr)
@@ -306,12 +276,12 @@ class FactoryDataExtractor:
 
         try:
             # Resources might be in top-level or in a structure
-            if "minedResources" in self.data:
-                resources = self.data["minedResources"]
-            elif "resources" in self.data:
-                resources = self.data["resources"]
-            elif "resourceCounts" in self.data:
-                resources = self.data["resourceCounts"]
+            if 'minedResources' in self.data:
+                resources = self.data['minedResources']
+            elif 'resources' in self.data:
+                resources = self.data['resources']
+            elif 'resourceCounts' in self.data:
+                resources = self.data['resourceCounts']
 
         except Exception as e:
             print(f"Warning: Could not extract resources: {e}", file=sys.stderr)
@@ -342,8 +312,8 @@ class FactoryDataExtractor:
     def _extract_unlocks(self) -> Dict[str, Any]:
         """Extract tech tree unlocks and milestones."""
         return {
-            "milestonesCompleted": len(self.data.get("milestones", [])),
-            "schematicsUnlocked": len(self.data.get("schematics", [])),
+            "milestonesCompleted": len(self.data.get('milestones', [])),
+            "schematicsUnlocked": len(self.data.get('schematics', []))
         }
 
     @staticmethod
@@ -356,37 +326,27 @@ class FactoryDataExtractor:
         if not isinstance(hdr, dict):
             return False
 
-        type_path = hdr.get("typePath", "")
+        type_path = hdr.get('typePath', '')
         # All player-placed buildings are under /Buildable/ and have Build_ in the name
-        if "/Buildable/" in type_path and "Build_" in type_path:
+        if '/Buildable/' in type_path and 'Build_' in type_path:
             return True
         # Fallback keyword check for any edge cases
         factory_keywords = [
-            "Smelter",
-            "Assembler",
-            "Foundry",
-            "MinerMk",
-            "OilPump",
-            "WaterExtractor",
-            "Constructor",
-            "Manufacturer",
-            "Refinery",
-            "Packager",
-            "Blender",
-            "HadronCollider",
-            "Generator",
-            "PowerStorage",
+            'Smelter', 'Assembler', 'Foundry',
+            'MinerMk', 'OilPump', 'WaterExtractor',
+            'Constructor', 'Manufacturer', 'Refinery',
+            'Packager', 'Blender', 'HadronCollider',
+            'Generator', 'PowerStorage',
         ]
         return any(kw in type_path for kw in factory_keywords)
 
 
 if __name__ == "__main__":
     import sys
-
-    debug_mode = "--debug" in sys.argv
+    debug_mode = '--debug' in sys.argv
     save_file = sys.argv[1] if len(sys.argv) > 1 else None
 
-    if save_file and save_file != "--debug":
+    if save_file and save_file != '--debug':
         data = parse_save_file(save_file, debug=debug_mode)
         if data:
             print(json.dumps(data, indent=2))

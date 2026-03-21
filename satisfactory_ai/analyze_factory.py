@@ -6,9 +6,10 @@ Takes extracted factory data and generates optimization recommendations.
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from anthropic import Anthropic
+from anthropic.types import MessageParam, TextBlock
 
 # Default Claude model — override with the CLAUDE_MODEL environment variable.
 DEFAULT_MODEL = "claude-sonnet-4-6"
@@ -31,7 +32,7 @@ class FactoryAnalyzer:
             )
 
         self.client = Anthropic(api_key=self.api_key)
-        self.conversation_history = []
+        self.conversation_history: List[MessageParam] = []
 
     def analyze(self, factory_data: Dict[str, Any]) -> str:
         """
@@ -48,10 +49,15 @@ class FactoryAnalyzer:
         model = os.getenv("CLAUDE_MODEL", DEFAULT_MODEL)
 
         response = self.client.messages.create(
-            model=model, max_tokens=2000, messages=[{"role": "user", "content": prompt}]
+            model=model,
+            max_tokens=2000,
+            messages=[{
+                "role": "user",
+                "content": prompt
+            }]
         )
 
-        return response.content[0].text
+        return cast(TextBlock, response.content[0]).text
 
     def analyze_interactive(self, factory_data: Dict[str, Any]) -> None:
         """
@@ -64,39 +70,55 @@ class FactoryAnalyzer:
 
         # Initial analysis
         initial_prompt = self._build_analysis_prompt(factory_data)
-        self.conversation_history.append({"role": "user", "content": initial_prompt})
+        self.conversation_history.append({
+            "role": "user",
+            "content": initial_prompt
+        })
 
         model = os.getenv("CLAUDE_MODEL", DEFAULT_MODEL)
 
         response = self.client.messages.create(
-            model=model, max_tokens=2000, messages=self.conversation_history
+            model=model,
+            max_tokens=2000,
+            messages=self.conversation_history
         )
 
-        analysis = response.content[0].text
+        analysis = cast(TextBlock, response.content[0]).text
         print("=== Factory Analysis ===\n")
         print(analysis)
-        print("\n" + "=" * 50 + "\n")
+        print("\n" + "="*50 + "\n")
 
-        self.conversation_history.append({"role": "assistant", "content": analysis})
+        self.conversation_history.append({
+            "role": "assistant",
+            "content": analysis
+        })
 
         # Interactive follow-ups
         while True:
             user_input = input("Ask a follow-up question (or 'quit'): ").strip()
-            if user_input.lower() == "quit":
+            if user_input.lower() == 'quit':
                 break
             if not user_input:
                 continue
 
-            self.conversation_history.append({"role": "user", "content": user_input})
+            self.conversation_history.append({
+                "role": "user",
+                "content": user_input
+            })
 
             response = self.client.messages.create(
-                model=model, max_tokens=1500, messages=self.conversation_history
+                model=model,
+                max_tokens=1500,
+                messages=self.conversation_history
             )
 
-            answer = response.content[0].text
+            answer = cast(TextBlock, response.content[0]).text
             print(f"\n{answer}\n")
 
-            self.conversation_history.append({"role": "assistant", "content": answer})
+            self.conversation_history.append({
+                "role": "assistant",
+                "content": answer
+            })
 
     @staticmethod
     def _build_analysis_prompt(factory_data: Dict[str, Any]) -> str:
@@ -117,7 +139,9 @@ class FactoryAnalyzer:
 
         generators = power.get("generators", [])
         generator_summary = (
-            "\n".join(f"  - {g}" for g in sorted(set(generators))) if generators else "  (none)"
+            "\n".join(f"  - {g}" for g in sorted(set(generators)))
+            if generators
+            else "  (none)"
         )
 
         prompt = f"""You are an expert Satisfactory factory advisor. Analyze this factory and provide specific, actionable optimization recommendations.
@@ -180,10 +204,14 @@ def analyze_save_file(save_data: Dict[str, Any], interactive: bool = False) -> s
 if __name__ == "__main__":
     # Example usage
     sample_data = {
-        "session": {"name": "Test Factory", "playTime": 3600, "gamePhase": 1},
+        "session": {
+            "name": "Test Factory",
+            "playTime": 3600,
+            "gamePhase": 1
+        },
         "buildings": [],
         "powerGrid": {},
-        "resources": {},
+        "resources": {}
     }
 
     print(analyze_save_file(sample_data))

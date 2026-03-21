@@ -11,6 +11,7 @@ Usage:
 import json
 import sys
 from pathlib import Path
+from typing import Dict
 
 import click
 
@@ -25,12 +26,10 @@ def cli():
 
 
 @cli.command()
-@click.argument("save_file", type=click.Path(exists=True))
-@click.option(
-    "--interactive", "-i", is_flag=True, help="Interactive analysis with follow-up questions"
-)
-@click.option("--json", "output_json", is_flag=True, help="Output raw JSON")
-@click.option("--debug", is_flag=True, help="Show debug information")
+@click.argument('save_file', type=click.Path(exists=True))
+@click.option('--interactive', '-i', is_flag=True, help='Interactive analysis with follow-up questions')
+@click.option('--json', 'output_json', is_flag=True, help='Output raw JSON')
+@click.option('--debug', is_flag=True, help='Show debug information')
 def analyze(save_file: str, interactive: bool, output_json: bool, debug: bool):
     """Analyze a Satisfactory save file and get AI optimization recommendations."""
 
@@ -56,24 +55,24 @@ def analyze(save_file: str, interactive: bool, output_json: bool, debug: bool):
         analysis = analyze_save_file(factory_data, interactive=False)
 
         # Format and print analysis
-        click.echo("\n" + "=" * 60)
+        click.echo("\n" + "="*60)
         click.echo("FACTORY ANALYSIS REPORT")
-        click.echo("=" * 60 + "\n")
+        click.echo("="*60 + "\n")
 
         session = factory_data.get("session", {})
         click.echo(f"Factory: {session.get('name', 'Unknown')}")
         click.echo(f"Play Time: {session.get('playTime', 0) / 3600:.1f} hours")
         click.echo(f"Game Phase: {session.get('gamePhase', 0)}")
-        click.echo("\n" + "-" * 60 + "\n")
+        click.echo("\n" + "-"*60 + "\n")
 
         click.echo(analysis)
 
-        click.echo("\n" + "=" * 60)
+        click.echo("\n" + "="*60)
 
 
 @cli.command()
-@click.argument("save_file", type=click.Path(exists=True))
-@click.option("--json", "output_json", is_flag=True, help="Output as JSON")
+@click.argument('save_file', type=click.Path(exists=True))
+@click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
 def stats(save_file: str, output_json: bool):
     """Display parsed factory statistics."""
 
@@ -94,9 +93,9 @@ def stats(save_file: str, output_json: bool):
     power = factory_data.get("powerGrid", {})
     resources = factory_data.get("resources", {})
 
-    click.echo("\n" + "=" * 60)
+    click.echo("\n" + "="*60)
     click.echo("FACTORY STATISTICS")
-    click.echo("=" * 60 + "\n")
+    click.echo("="*60 + "\n")
 
     click.echo(f"Session: {session.get('name', 'Unknown')}")
     click.echo(f"Play Time: {session.get('playTime', 0) / 3600:.1f} hours")
@@ -106,9 +105,9 @@ def stats(save_file: str, output_json: bool):
     click.echo(f"\nBuildings: {len(buildings)}")
     if buildings:
         # Group by type
-        building_types = {}
+        building_types: Dict[str, int] = {}
         for b in buildings:
-            btype = b.get("type", "Unknown")
+            btype = b.get('type', 'Unknown')
             building_types[btype] = building_types.get(btype, 0) + 1
 
         for btype, count in sorted(building_types.items()):
@@ -125,7 +124,7 @@ def stats(save_file: str, output_json: bool):
         for resource, amount in resources.items():
             click.echo(f"  - {resource}: {amount}")
 
-    click.echo("\n" + "=" * 60)
+    click.echo("\n" + "="*60)
 
 
 @cli.command()
@@ -138,9 +137,9 @@ def config():
 
     api_key = os.getenv("ANTHROPIC_API_KEY")
 
-    click.echo("\n" + "=" * 60)
+    click.echo("\n" + "="*60)
     click.echo("CONFIGURATION")
-    click.echo("=" * 60 + "\n")
+    click.echo("="*60 + "\n")
 
     if api_key:
         click.echo("✅ ANTHROPIC_API_KEY is set")
@@ -172,7 +171,7 @@ def config():
         click.echo("Initialize submodule with:")
         click.echo("  git submodule update --init --recursive")
 
-    click.echo("\n" + "=" * 60)
+    click.echo("\n" + "="*60)
 
 
 @cli.command()
@@ -182,5 +181,5 @@ def version():
     click.echo("Powered by Claude AI")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     cli()
