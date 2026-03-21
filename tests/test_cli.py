@@ -132,7 +132,9 @@ class TestAnalyzeCommand:
 
     def test_debug_flag_is_forwarded_to_parser(self, runner, fake_sav):
         with (
-            patch("satisfactory_ai.cli.parse_save_file", return_value=SAMPLE_FACTORY_DATA) as mock_parse,
+            patch(
+                "satisfactory_ai.cli.parse_save_file", return_value=SAMPLE_FACTORY_DATA
+            ) as mock_parse,
             patch("satisfactory_ai.cli.analyze_save_file", return_value="OK"),
         ):
             runner.invoke(cli, ["analyze", str(fake_sav), "--debug"])
@@ -141,7 +143,9 @@ class TestAnalyzeCommand:
 
     def test_debug_false_by_default(self, runner, fake_sav):
         with (
-            patch("satisfactory_ai.cli.parse_save_file", return_value=SAMPLE_FACTORY_DATA) as mock_parse,
+            patch(
+                "satisfactory_ai.cli.parse_save_file", return_value=SAMPLE_FACTORY_DATA
+            ) as mock_parse,
             patch("satisfactory_ai.cli.analyze_save_file", return_value="OK"),
         ):
             runner.invoke(cli, ["analyze", str(fake_sav)])

@@ -43,7 +43,9 @@ class TestFactoryDataExtractorInit:
 
     def test_headers_by_name_index_is_populated(self, sample_save_data):
         extractor = FactoryDataExtractor(sample_save_data)
-        assert "Persistent_Level:PersistentLevel.Build_SmelterMk1_C_001" in extractor.headers_by_name
+        assert (
+            "Persistent_Level:PersistentLevel.Build_SmelterMk1_C_001" in extractor.headers_by_name
+        )
 
     def test_handles_empty_levels_dict(self):
         extractor = FactoryDataExtractor({"saveFileInfo": {}, "levels": {}})
@@ -199,7 +201,14 @@ class TestEstimateProductionRates:
 class TestExtractAll:
     def test_returns_all_expected_keys(self, sample_save_data):
         result = FactoryDataExtractor(sample_save_data).extract_all()
-        assert set(result.keys()) == {"session", "buildings", "powerGrid", "resources", "production", "unlocks"}
+        assert set(result.keys()) == {
+            "session",
+            "buildings",
+            "powerGrid",
+            "resources",
+            "production",
+            "unlocks",
+        }
 
     def test_buildings_not_extracted_twice(self, sample_save_data):
         """_extract_buildings should only be called once per extract_all invocation."""
@@ -224,11 +233,15 @@ class TestExtractAll:
 
 class TestIsFactoryBuilding:
     def test_buildable_path_with_build_prefix(self):
-        hdr = {"typePath": "/Game/FactoryGame/Buildable/Factory/MinerMK1/Build_MinerMk1.Build_MinerMk1_C"}
+        hdr = {
+            "typePath": "/Game/FactoryGame/Buildable/Factory/MinerMK1/Build_MinerMk1.Build_MinerMk1_C"
+        }
         assert FactoryDataExtractor._is_factory_building(hdr) is True
 
     def test_non_buildable_wildlife(self):
-        hdr = {"typePath": "/Game/FactoryGame/Character/Creature/Wildlife/Char_SpaceGiraffe.Char_SpaceGiraffe_C"}
+        hdr = {
+            "typePath": "/Game/FactoryGame/Character/Creature/Wildlife/Char_SpaceGiraffe.Char_SpaceGiraffe_C"
+        }
         assert FactoryDataExtractor._is_factory_building(hdr) is False
 
     def test_empty_header(self):
@@ -243,7 +256,9 @@ class TestIsFactoryBuilding:
 
     def test_generator_included_via_keyword_fallback(self):
         # Also matches via the /Buildable/ + Build_ path
-        hdr = {"typePath": "/Game/FactoryGame/Buildable/Factory/GeneratorBiomass/Build_GeneratorIntegratedBiomass.Build_GeneratorIntegratedBiomass_C"}
+        hdr = {
+            "typePath": "/Game/FactoryGame/Buildable/Factory/GeneratorBiomass/Build_GeneratorIntegratedBiomass.Build_GeneratorIntegratedBiomass_C"
+        }
         assert FactoryDataExtractor._is_factory_building(hdr) is True
 
 
@@ -435,7 +450,10 @@ class TestConvertSaveToJson:
 
     def test_timeout_returns_none(self, tmp_path, capsys):
         fake_sav = str(tmp_path / "test.sav")
-        with patch("satisfactory_ai.parse_save.subprocess.run", side_effect=subprocess.TimeoutExpired("cmd", 60)):
+        with patch(
+            "satisfactory_ai.parse_save.subprocess.run",
+            side_effect=subprocess.TimeoutExpired("cmd", 60),
+        ):
             with patch("satisfactory_ai.parse_save.Path", wraps=Path) as mock_p:
                 orig_path = Path
                 call_count = {"n": 0}
@@ -464,7 +482,9 @@ class TestConvertSaveToJson:
         json_file.write_text("not valid json {{")
 
         with (
-            patch("satisfactory_ai.parse_save.subprocess.run", return_value=MagicMock(returncode=0)),
+            patch(
+                "satisfactory_ai.parse_save.subprocess.run", return_value=MagicMock(returncode=0)
+            ),
             patch("satisfactory_ai.parse_save.Path", wraps=Path) as mock_p,
         ):
             orig_path = Path
@@ -483,18 +503,26 @@ class TestConvertSaveToJson:
             mock_p.side_effect = side_effect
 
             # Also patch open to return bad JSON
-            with patch("builtins.open", side_effect=[
-                MagicMock(  # NamedTemporaryFile open — not called directly in new code
-                    __enter__=MagicMock(return_value=MagicMock(name=str(json_file))),
-                    __exit__=MagicMock(return_value=False),
-                )
-            ]):
+            with patch(
+                "builtins.open",
+                side_effect=[
+                    MagicMock(  # NamedTemporaryFile open — not called directly in new code
+                        __enter__=MagicMock(return_value=MagicMock(name=str(json_file))),
+                        __exit__=MagicMock(return_value=False),
+                    )
+                ],
+            ):
                 pass  # can't easily test this path without deeper mocking
 
         # Test the JSONDecodeError path by patching json.load
         with (
-            patch("satisfactory_ai.parse_save.subprocess.run", return_value=MagicMock(returncode=0)),
-            patch("satisfactory_ai.parse_save.json.load", side_effect=json.JSONDecodeError("err", "doc", 0)),
+            patch(
+                "satisfactory_ai.parse_save.subprocess.run", return_value=MagicMock(returncode=0)
+            ),
+            patch(
+                "satisfactory_ai.parse_save.json.load",
+                side_effect=json.JSONDecodeError("err", "doc", 0),
+            ),
             patch("satisfactory_ai.parse_save.Path", wraps=Path) as mock_p2,
         ):
             orig_path2 = Path
